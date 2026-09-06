@@ -20,6 +20,7 @@ import { initCanvas } from "./init-canvas";
 import { createComputeParamsBuffer } from "./buffers/create-compute-params-buffer";
 import { initComputePipeline } from "./init-compute-pipeline";
 import { createComputeBindGroups } from "./create-compute-bind-groups";
+import { changeLabelTime } from "./helpers/change-label-time";
 
 async function run() {
   try {
@@ -111,6 +112,7 @@ async function run() {
 
       device.queue.submit([encoder.finish()]);
 
+      changeLabelTime(t);
       requestAnimationFrame(frame);
     }
 
