@@ -1,129 +1,50 @@
 import "./style.css";
 import { initRenderPipeline } from "./init-render-pipeline";
 import { initWebGPU } from "./init-webgpu";
-
-import { createColorBuffer } from "./buffers/create-color-buffer";
-import {
-  color,
-  dt,
-  dx,
-  initialTemperature,
-  lambda,
-  leftBoundary,
-  N,
-  r,
-  rightBoundary,
-  t,
-  tEnd,
-  VIEWPORT,
-} from "./utils/initial-conditions";
-import { createTemperatureBuffer } from "./buffers/create-temperature-buffer";
-import { createComputeParamsBuffer } from "./buffers/create-compute-params-buffer";
-import { initComputePipeline } from "./init-compute-pipeline";
-import { createComputeBindGroups } from "./create-compute-bind-groups";
-import { createViewportBuffer } from "./buffers/createViewportBuffer";
+import { initialValue, NX, NY, VIEWPORT } from "./utils/initial-conditions";
 import { createRenderBindGroups } from "./createRenderBindGroups";
-import { computeAndRender } from "./computeAndRender";
 import { createLabelX } from "./helpers/create-label-x";
 import { createLabelY } from "./helpers/create-label-y";
+import { createValueBuffer } from "./buffers/create-value-buffer";
+import { computeMinMax } from "./utils/compute-min-max";
+import { createRenderParamsBuffer } from "./buffers/create-render-params-buffer";
+import { initCanvas } from "./init-canvas";
+import { render } from "./render";
 
 async function run() {
   try {
-    const { device, context } = await initWebGPU({
+    const { device } = await initWebGPU();
+    const { context } = initCanvas({
+      device,
       canvasSelector: "#gfx-main",
     });
 
-    const { temperatureBuffer: temperatureBufferA } = createTemperatureBuffer({
+    const valueBuffer = createValueBuffer({
       device,
-      initialTemperature,
+      initialValue,
     });
 
-    const { temperatureBuffer: temperatureBufferB } = createTemperatureBuffer({
+    const { min, max } = computeMinMax(initialValue);
+
+    const renderParamsBuffer = createRenderParamsBuffer({
       device,
-      initialTemperature,
+      params: { nx: NX, ny: NY, minValue: min, maxValue: max },
     });
 
-    const { computeParamsBuffer } = createComputeParamsBuffer({
-      device,
-      params: {
-        r,
-        lambda: lambda,
-        dx: dx,
-        leftBoundary,
-        rightBoundary,
-        N,
-      },
-    });
-
-    const { viewportBuffer } = createViewportBuffer({
-      device,
-      params: {
-        xMin: VIEWPORT.xMin,
-        xMax: VIEWPORT.xMax,
-        yMin: VIEWPORT.yMin,
-        yMax: VIEWPORT.yMax,
-        N,
-      },
-    });
-
-    const { colorBuffer } = createColorBuffer({ device, color });
-
-    const { computePipeline } = await initComputePipeline({ device });
-    const { computeBindGroupAtoB, computeBindGroupBtoA } =
-      createComputeBindGroups({
-        device,
-        pipeline: computePipeline,
-        temperatureA: temperatureBufferA,
-        temperatureB: temperatureBufferB,
-        paramsBuffer: computeParamsBuffer,
-      });
-
-    const { renderPipeline } = await initRenderPipeline({
-      device,
-    });
-
-    const { renderBindGroupA, renderBindGroupB } = createRenderBindGroups({
+    const renderPipeline = await initRenderPipeline({ device });
+    const renderBindGroup = createRenderBindGroups({
       device,
       pipeline: renderPipeline,
-      temperatureA: temperatureBufferA,
-      temperatureB: temperatureBufferB,
-      viewportBuffer,
-      colorBuffer,
+      valueBuffer,
+      paramsBuffer: renderParamsBuffer,
     });
 
-    const STEPS_PER_RENDER = 10;
-    const simulation = {
-      t,
-      currentIsA: true,
-      running: true,
-    };
-
-    function frame() {
-      if (!simulation.running) {
-        return;
-      }
-      computeAndRender({
-        device,
-        context,
-        computePipeline,
-        computeBindGroupAtoB,
-        computeBindGroupBtoA,
-        renderPipeline,
-        renderBindGroupA,
-        renderBindGroupB,
-        N,
-        dt,
-        tEnd,
-        steps: STEPS_PER_RENDER,
-        simulation,
-      });
-
-      if (simulation.running) {
-        requestAnimationFrame(frame);
-      }
-    }
-
-    requestAnimationFrame(frame);
+    render({
+      device,
+      context,
+      pipeline: renderPipeline,
+      bindGroup: renderBindGroup,
+    });
   } catch (error) {
     console.error(error);
   }

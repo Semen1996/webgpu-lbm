@@ -1,5 +1,4 @@
-import vertexCode from "./shaders/position.vert.wgsl?raw";
-import fragmentCode from "./shaders/color.frag.wgsl?raw";
+import surfacePlotShader from "./shaders/surface-plot.wgsl?raw";
 
 type InitRenderPipelineProps = {
   device: GPUDevice;
@@ -8,21 +7,19 @@ type InitRenderPipelineProps = {
 export const initRenderPipeline = async ({
   device,
 }: InitRenderPipelineProps) => {
-  const vertexShader = device.createShaderModule({ code: vertexCode });
-  const fragmentShader = device.createShaderModule({ code: fragmentCode });
+  const shaderModule = device.createShaderModule({ code: surfacePlotShader });
 
   const pipeline = await device.createRenderPipelineAsync({
     layout: "auto",
 
     vertex: {
-      module: vertexShader,
-      entryPoint: "main",
-      buffers: [],
+      module: shaderModule,
+      entryPoint: "vs_main",
     },
 
     fragment: {
-      module: fragmentShader,
-      entryPoint: "main",
+      module: shaderModule,
+      entryPoint: "fs_main",
 
       targets: [
         {
@@ -32,9 +29,9 @@ export const initRenderPipeline = async ({
     },
 
     primitive: {
-      topology: "line-strip",
+      topology: "triangle-list",
     },
   });
 
-  return { renderPipeline: pipeline };
+  return pipeline;
 };
