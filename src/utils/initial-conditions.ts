@@ -14,6 +14,12 @@ export const DOMAIN = {
   yMax: 40,
 };
 
+export const t0 = 0; // начальное время, [c]
+export const t = t0; // текущее время, [c]
+export const dt = 0.001; // шаг по времени, [c]
+
+export const OMEGA = -1; // скорость изменения вращения, [м/с]
+
 export const NX = 1000; // количество узлов по x-координате
 export const NY = 1000; // количество узлов по Y-координате
 
@@ -25,6 +31,7 @@ for (let iy = 0; iy < NY; iy++) {
     const x = DOMAIN.xMin + ((DOMAIN.xMax - DOMAIN.xMin) * ix) / (NX - 1);
     const y = DOMAIN.yMin + ((DOMAIN.yMax - DOMAIN.yMin) * iy) / (NY - 1);
 
-    initialValue[iy * NX + ix] = Math.sin(x) * Math.cos(y);
+    initialValue[iy * NX + ix] =
+      Math.sin(x + OMEGA * t0) * Math.cos(y + OMEGA * t0);
   }
 }
