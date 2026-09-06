@@ -5,7 +5,7 @@ type CreateRenderBindGroupsProps = {
   paramsBuffer: GPUBuffer;
 };
 
-export const createRenderBindGroups = ({
+export const createRenderBindGroup = ({
   device,
   pipeline,
   valueBuffer,

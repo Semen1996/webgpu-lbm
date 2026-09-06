@@ -1,8 +1,10 @@
 struct Params {
-  nx: u32,
-  ny: u32,
-  minValue: f32,
-  maxValue: f32,
+  gridSize: vec2<u32>,     // nx, ny
+  valueRange: vec2<f32>,   // minValue, maxValue
+  viewportMin: vec2<f32>,  // xMin, yMin
+  viewportMax: vec2<f32>,  // xMax, yMax
+  domainMin: vec2<f32>,    // xMin, yMin
+  domainMax: vec2<f32>,    // xMax, yMax
 };
 
 @group(0) @binding(0) var<storage, read> values: array<f32>;
@@ -46,11 +48,23 @@ fn colormap(t: f32) -> vec3<f32> {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let uv = clamp(in.uv, vec2<f32>(0.0), vec2<f32>(1.0));
 
-  let ix = min(u32(uv.x * f32(params.nx)), params.nx - 1u);
-  let iy = min(u32(uv.y * f32(params.ny)), params.ny - 1u);
+  // uv -> физическая координата в системе VIEWPORT
+  let worldPos = params.viewportMin + uv * (params.viewportMax - params.viewportMin);
 
-  let value = values[iy * params.nx + ix];
-  let t = clamp((value - params.minValue) / (params.maxValue - params.minValue), 0.0, 1.0);
+  // если точка вне расчётной области — просто фон, данных там нет
+  if (worldPos.x < params.domainMin.x || worldPos.x > params.domainMax.x ||
+      worldPos.y < params.domainMin.y || worldPos.y > params.domainMax.y) {
+    discard;
+  }
+
+  // локальная координата внутри DOMAIN, нормализованная в [0,1]
+  let local = (worldPos - params.domainMin) / (params.domainMax - params.domainMin);
+
+  let ix = min(u32(local.x * f32(params.gridSize.x)), params.gridSize.x - 1u);
+  let iy = min(u32(local.y * f32(params.gridSize.y)), params.gridSize.y - 1u);
+
+  let value = values[iy * params.gridSize.x + ix];
+  let t = clamp((value - params.valueRange.x) / (params.valueRange.y - params.valueRange.x), 0.0, 1.0);
 
   return vec4<f32>(colormap(t), 1.0);
 }

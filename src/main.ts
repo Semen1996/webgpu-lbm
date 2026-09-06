@@ -1,8 +1,14 @@
 import "./style.css";
 import { initRenderPipeline } from "./init-render-pipeline";
 import { initWebGPU } from "./init-webgpu";
-import { initialValue, NX, NY, VIEWPORT } from "./utils/initial-conditions";
-import { createRenderBindGroups } from "./createRenderBindGroups";
+import {
+  DOMAIN,
+  initialValue,
+  NX,
+  NY,
+  VIEWPORT,
+} from "./utils/initial-conditions";
+import { createRenderBindGroup } from "./create-render-bind-group";
 import { createLabelX } from "./helpers/create-label-x";
 import { createLabelY } from "./helpers/create-label-y";
 import { createValueBuffer } from "./buffers/create-value-buffer";
@@ -28,11 +34,18 @@ async function run() {
 
     const renderParamsBuffer = createRenderParamsBuffer({
       device,
-      params: { nx: NX, ny: NY, minValue: min, maxValue: max },
+      params: {
+        nx: NX,
+        ny: NY,
+        minValue: min,
+        maxValue: max,
+        viewport: VIEWPORT,
+        domain: DOMAIN,
+      },
     });
 
     const renderPipeline = await initRenderPipeline({ device });
-    const renderBindGroup = createRenderBindGroups({
+    const renderBindGroup = createRenderBindGroup({
       device,
       pipeline: renderPipeline,
       valueBuffer,
