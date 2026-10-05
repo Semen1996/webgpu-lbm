@@ -21,6 +21,7 @@ import createPlot from "./utils/create-plot";
 import { createCollideStreamBindGroup } from "./bind-groups/compute/create-collide-stream-bind-group";
 import { createBoundaryMacroscopicBindGroup } from "./bind-groups/compute/create-boundary-macroscopic-bind-group";
 import { renderFrame } from "./render-frame";
+import { CANVAS_SELECTOR_ID } from "./utils/selectors";
 
 async function run() {
   try {
@@ -31,7 +32,7 @@ async function run() {
 
     const { context, format } = initCanvas({
       device,
-      canvasSelector: "#gfx-main",
+      canvasSelector: CANVAS_SELECTOR_ID,
     });
 
     const lbmRenderParamsBuffer = createLbmRenderParamsBuffer({
