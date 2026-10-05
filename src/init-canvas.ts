@@ -21,10 +21,12 @@ export function initCanvas({ canvasSelector, device }: InitCanvasProps) {
   canvas.width = canvas.clientWidth * devicePixelRatio;
   canvas.height = canvas.clientHeight * devicePixelRatio;
 
+  const format = navigator.gpu.getPreferredCanvasFormat();
+
   context.configure({
     device,
-    format: navigator.gpu.getPreferredCanvasFormat(),
+    format,
   });
 
-  return { canvas, context };
+  return { canvas, context, format };
 }

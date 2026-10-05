@@ -2,10 +2,12 @@ import lbmRenderShader from "@/shaders/lbm-render.wgsl?raw";
 
 type InitLbmRenderPipelineProps = {
   device: GPUDevice;
+  format: GPUTextureFormat;
 };
 
 export const initLbmRenderPipeline = async ({
   device,
+  format,
 }: InitLbmRenderPipelineProps) => {
   const shaderModule = device.createShaderModule({ code: lbmRenderShader });
 
@@ -15,7 +17,7 @@ export const initLbmRenderPipeline = async ({
     fragment: {
       module: shaderModule,
       entryPoint: "fs_main",
-      targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }],
+      targets: [{ format }],
     },
     primitive: { topology: "triangle-list" },
   });

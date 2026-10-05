@@ -29,7 +29,7 @@ async function run() {
       requiredSize: NX * NY * 4,
     });
 
-    const { context } = initCanvas({
+    const { context, format } = initCanvas({
       device,
       canvasSelector: "#gfx-main",
     });
@@ -39,7 +39,7 @@ async function run() {
       params: { nx: NX, ny: NY, u0: U0, viewport: VIEWPORT, domain: DOMAIN },
     });
 
-    const lbmRenderPipeline = await initLbmRenderPipeline({ device });
+    const lbmRenderPipeline = await initLbmRenderPipeline({ device, format });
 
     // ping-pong: в одном буфере свежие f, в другой пишет collide-stream
     const fBuffers = [
