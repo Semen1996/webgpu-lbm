@@ -28,6 +28,7 @@ async function run() {
       hasComputePipeline: true,
       requiredSize: NX * NY * 4,
     });
+
     const { context } = initCanvas({
       device,
       canvasSelector: "#gfx-main",
@@ -40,8 +41,11 @@ async function run() {
 
     const lbmRenderPipeline = await initLbmRenderPipeline({ device });
 
-    const fABuffer = createFBuffer({ device, nx: NX, ny: NY });
-    const fBBuffer = createFBuffer({ device, nx: NX, ny: NY });
+    // ping-pong: в одном буфере свежие f, в другой пишет collide-stream
+    const fBuffers = [
+      createFBuffer({ device, nx: NX, ny: NY }),
+      createFBuffer({ device, nx: NX, ny: NY }),
+    ];
 
     const { rhoBuffer, uBuffer, vBuffer } = createMacroBuffers({
       device,
@@ -66,47 +70,32 @@ async function run() {
     const { collideStreamPipeline, boundaryMacroscopicPipeline } =
       await initLbmPipelines({ device });
 
-    const collideStreamABindGroup = createCollideStreamBindGroup({
-      device,
-      collideStreamPipeline,
-      fABuffer,
-      fBBuffer,
-      rhoBuffer,
-      uBuffer,
-      vBuffer,
-      paramsBuffer: lbmParamsBuffer,
-    });
+    // collideStreamBindGroups[i]: читает fBuffers[i], пишет в другой буфер
+    const collideStreamBindGroups = fBuffers.map((fSrcBuffer, i) =>
+      createCollideStreamBindGroup({
+        device,
+        collideStreamPipeline,
+        fSrcBuffer,
+        fDstBuffer: fBuffers[1 - i],
+        rhoBuffer,
+        uBuffer,
+        vBuffer,
+        paramsBuffer: lbmParamsBuffer,
+      }),
+    );
 
-    const collideStreamBBindGroup = createCollideStreamBindGroup({
-      device,
-      collideStreamPipeline,
-      fABuffer: fBBuffer,
-      fBBuffer: fABuffer,
-      rhoBuffer,
-      uBuffer,
-      vBuffer,
-      paramsBuffer: lbmParamsBuffer,
-    });
-
-    const boundaryMacroscopicABindGroup = createBoundaryMacroscopicBindGroup({
-      device,
-      boundaryMacroscopicPipeline,
-      fBuffer: fABuffer,
-      rhoBuffer,
-      uBuffer,
-      vBuffer,
-      paramsBuffer: lbmParamsBuffer,
-    });
-
-    const boundaryMacroscopicBBindGroup = createBoundaryMacroscopicBindGroup({
-      device,
-      boundaryMacroscopicPipeline,
-      fBuffer: fBBuffer,
-      rhoBuffer,
-      uBuffer,
-      vBuffer,
-      paramsBuffer: lbmParamsBuffer,
-    });
+    // boundaryMacroscopicBindGroups[i]: работает на месте с fBuffers[i]
+    const boundaryMacroscopicBindGroups = fBuffers.map((fBuffer) =>
+      createBoundaryMacroscopicBindGroup({
+        device,
+        boundaryMacroscopicPipeline,
+        fBuffer,
+        rhoBuffer,
+        uBuffer,
+        vBuffer,
+        paramsBuffer: lbmParamsBuffer,
+      }),
+    );
 
     const workgroupsX = Math.ceil(NX / 8);
     const workgroupsY = Math.ceil(NY / 8);
@@ -121,7 +110,7 @@ async function run() {
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
 
-    let currentIsA = true; // true: свежие данные сейчас в fA
+    let fSrcIndex = 0; // индекс буфера в fBuffers со свежими f
 
     const MAX_ITERATIONS = 100000; // с запасом под более медленную сходимость
     const STEPS_PER_BATCH = 100;
@@ -150,21 +139,13 @@ async function run() {
 
         for (let step = 0; step < chunkSteps; step++) {
           pass.setPipeline(collideStreamPipeline);
-          pass.setBindGroup(
-            0,
-            currentIsA ? collideStreamABindGroup : collideStreamBBindGroup,
-          );
+          pass.setBindGroup(0, collideStreamBindGroups[fSrcIndex]);
           pass.dispatchWorkgroups(workgroupsX, workgroupsY);
 
-          currentIsA = !currentIsA;
+          fSrcIndex = 1 - fSrcIndex;
 
           pass.setPipeline(boundaryMacroscopicPipeline);
-          pass.setBindGroup(
-            0,
-            currentIsA
-              ? boundaryMacroscopicABindGroup
-              : boundaryMacroscopicBBindGroup,
-          );
+          pass.setBindGroup(0, boundaryMacroscopicBindGroups[fSrcIndex]);
           pass.dispatchWorkgroups(workgroupsX, workgroupsY);
 
           iteration++;
