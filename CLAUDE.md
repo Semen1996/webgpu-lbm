@@ -38,6 +38,6 @@ The entry point is `src/main.ts`. It sets up all GPU resources and runs the simu
 ## Conventions and gotchas
 
 - WGSL is imported as a string with `import shader from "@/shaders/....wgsl?raw"`. The `@` alias points to `src/` and is configured in both `vite.config.ts` and `tsconfig.json`.
-- Uniform buffers are packed by hand with `DataView` using explicit byte offsets. If a WGSL `Params` struct changes, update the matching `create-*-params-buffer.ts` too, and respect WGSL alignment: `lbm-render` pads to 16 bytes before its `vec2<f32>` fields. The compute shaders share the 16-byte `Params` struct from `common.wgsl`.
+- Uniform buffers are packed by hand with `DataView` using explicit byte offsets. If a WGSL `Params` struct changes, update the matching `create-*-params-buffer.ts` too, and respect WGSL alignment. `lbm-render` puts its `vec2` fields first and the scalars last, so no explicit `_pad` field is needed; keep that order when adding fields. The compute shaders share the 16-byte `Params` struct from `common.wgsl`.
 - Pipelines use `layout: "auto"`, so bind group entries must match the `@binding` indices that the shader actually uses.
 - `main.ts` passes `requiredSize: NX * NY * 4` to `initWebGPU`. That is the size of a macro buffer, but the largest binding is an `f` buffer at `NX*NY*9*4` bytes. It works at the current grid size only because the default limit is large enough. When scaling up the grid, pass the `f` buffer size instead.

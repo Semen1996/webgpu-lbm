@@ -23,20 +23,20 @@ export const createLbmRenderParamsBuffer = ({
   const data = new ArrayBuffer(48);
   const view = new DataView(data);
 
-  view.setUint32(0, params.nx, true);
-  view.setUint32(4, params.ny, true);
-  view.setFloat32(8, params.u0, true);
-  view.setFloat32(12, 0, true); // паддинг до 16 байт (выравнивание vec2)
+  view.setFloat32(0, params.viewport.xMin, true);
+  view.setFloat32(4, params.viewport.yMin, true);
+  view.setFloat32(8, params.viewport.xMax, true);
+  view.setFloat32(12, params.viewport.yMax, true);
 
-  view.setFloat32(16, params.viewport.xMin, true);
-  view.setFloat32(20, params.viewport.yMin, true);
-  view.setFloat32(24, params.viewport.xMax, true);
-  view.setFloat32(28, params.viewport.yMax, true);
+  view.setFloat32(16, params.domain.xMin, true);
+  view.setFloat32(20, params.domain.yMin, true);
+  view.setFloat32(24, params.domain.xMax, true);
+  view.setFloat32(28, params.domain.yMax, true);
 
-  view.setFloat32(32, params.domain.xMin, true);
-  view.setFloat32(36, params.domain.yMin, true);
-  view.setFloat32(40, params.domain.xMax, true);
-  view.setFloat32(44, params.domain.yMax, true);
+  view.setUint32(32, params.nx, true);
+  view.setUint32(36, params.ny, true);
+  view.setFloat32(40, params.u0, true);
+  // 44..48 — хвост структуры до кратности 8 (выравнивание vec2), не пишем
 
   device.queue.writeBuffer(buffer, 0, data);
 

@@ -1,11 +1,12 @@
+// vec2-поля идут первыми, скаляры — в конце: так все поля выровнены
+// без явного паддинга (порядок должен совпадать с create-lbm-render-params-buffer.ts)
 struct Params {
-  gridSize: vec2<u32>,
-  u0: f32,
-  _pad: f32,
   viewportMin: vec2<f32>,
   viewportMax: vec2<f32>,
   domainMin: vec2<f32>,
   domainMax: vec2<f32>,
+  gridSize: vec2<u32>,
+  u0: f32,
 };
 
 @group(0) @binding(0) var<storage, read> uVel: array<f32>;
