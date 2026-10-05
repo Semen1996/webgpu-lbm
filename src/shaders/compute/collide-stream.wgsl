@@ -1,17 +1,4 @@
-struct Params {
-  gridSize: vec2<u32>, // nx, ny
-  omega: f32,
-  u0: f32,
-};
-
-// D2Q9: E, N, W, S, NE, NW, SW, SE, C (те же cx/cy/w, что и в MATLAB, k=1..9 → 0..8)
-const cx = array<i32, 9>(1, 0, -1, 0, 1, -1, -1, 1, 0);
-const cy = array<i32, 9>(0, 1, 0, -1, 1, 1, -1, -1, 0);
-const w  = array<f32, 9>(
-  1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0,
-  1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0,
-  4.0 / 9.0
-);
+// Params, cx, cy, w, fIndex — из common.wgsl
 
 @group(0) @binding(0) var<storage, read> fOld: array<f32>;
 @group(0) @binding(1) var<storage, read_write> fNew: array<f32>;
@@ -24,10 +11,6 @@ fn wrapi(a: i32, n: i32) -> i32 {
   var r = a % n;
   if (r < 0) { r = r + n; }
   return r;
-}
-
-fn fIndex(i: u32, j: u32, k: u32, nx: u32) -> u32 {
-  return (j * nx + i) * 9u + k;
 }
 
 @compute @workgroup_size(8, 8)

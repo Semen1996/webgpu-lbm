@@ -19,8 +19,7 @@ import { initLbmRenderPipeline } from "./pipeline/init-lbm-render-pipeline";
 import { createLbmRenderBindGroup } from "./bind-groups/create-lbm-render-bind-group";
 import createPlot from "./utils/create-plot";
 import { createCollideStreamBindGroup } from "./bind-groups/compute/create-collide-stream-bind-group";
-import { createBoundaryBindGroup } from "./bind-groups/compute/create-boundary-bind-group";
-import { createMacroscopicBindGroup } from "./bind-groups/compute/create-macroscopic-bind-group";
+import { createBoundaryMacroscopicBindGroup } from "./bind-groups/compute/create-boundary-macroscopic-bind-group";
 import { renderFrame } from "./render-frame";
 
 async function run() {
@@ -64,7 +63,7 @@ async function run() {
       paramsBuffer: lbmRenderParamsBuffer,
     });
 
-    const { collideStreamPipeline, boundaryPipeline, macroscopicPipeline } =
+    const { collideStreamPipeline, boundaryMacroscopicPipeline } =
       await initLbmPipelines({ device });
 
     const collideStreamABindGroup = createCollideStreamBindGroup({
@@ -89,23 +88,9 @@ async function run() {
       paramsBuffer: lbmParamsBuffer,
     });
 
-    const boundaryABindGroup = createBoundaryBindGroup({
+    const boundaryMacroscopicABindGroup = createBoundaryMacroscopicBindGroup({
       device,
-      boundaryPipeline,
-      fBuffer: fABuffer,
-      paramsBuffer: lbmParamsBuffer,
-    });
-
-    const boundaryBBindGroup = createBoundaryBindGroup({
-      device,
-      boundaryPipeline,
-      fBuffer: fBBuffer,
-      paramsBuffer: lbmParamsBuffer,
-    });
-
-    const macroscopicABindGroup = createMacroscopicBindGroup({
-      device,
-      macroscopicPipeline,
+      boundaryMacroscopicPipeline,
       fBuffer: fABuffer,
       rhoBuffer,
       uBuffer,
@@ -113,9 +98,9 @@ async function run() {
       paramsBuffer: lbmParamsBuffer,
     });
 
-    const macroscopicBBindGroup = createMacroscopicBindGroup({
+    const boundaryMacroscopicBBindGroup = createBoundaryMacroscopicBindGroup({
       device,
-      macroscopicPipeline,
+      boundaryMacroscopicPipeline,
       fBuffer: fBBuffer,
       rhoBuffer,
       uBuffer,
@@ -173,17 +158,12 @@ async function run() {
 
           currentIsA = !currentIsA;
 
-          pass.setPipeline(boundaryPipeline);
+          pass.setPipeline(boundaryMacroscopicPipeline);
           pass.setBindGroup(
             0,
-            currentIsA ? boundaryABindGroup : boundaryBBindGroup,
-          );
-          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
-
-          pass.setPipeline(macroscopicPipeline);
-          pass.setBindGroup(
-            0,
-            currentIsA ? macroscopicABindGroup : macroscopicBBindGroup,
+            currentIsA
+              ? boundaryMacroscopicABindGroup
+              : boundaryMacroscopicBBindGroup,
           );
           pass.dispatchWorkgroups(workgroupsX, workgroupsY);
 

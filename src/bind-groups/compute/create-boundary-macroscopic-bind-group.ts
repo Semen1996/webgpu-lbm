@@ -1,6 +1,6 @@
-type CreateMacroscopicBindGroupsProp = {
+type CreateBoundaryMacroscopicBindGroupProps = {
   device: GPUDevice;
-  macroscopicPipeline: GPUComputePipeline;
+  boundaryMacroscopicPipeline: GPUComputePipeline;
   fBuffer: GPUBuffer;
   rhoBuffer: GPUBuffer;
   uBuffer: GPUBuffer;
@@ -8,19 +8,19 @@ type CreateMacroscopicBindGroupsProp = {
   paramsBuffer: GPUBuffer;
 };
 
-export const createMacroscopicBindGroup = ({
+export const createBoundaryMacroscopicBindGroup = ({
   device,
-  macroscopicPipeline,
+  boundaryMacroscopicPipeline,
   fBuffer,
   rhoBuffer,
   uBuffer,
   vBuffer,
   paramsBuffer,
-}: CreateMacroscopicBindGroupsProp) => {
-  const macroscopicLayout = macroscopicPipeline.getBindGroupLayout(0);
+}: CreateBoundaryMacroscopicBindGroupProps) => {
+  const layout = boundaryMacroscopicPipeline.getBindGroupLayout(0);
 
-  const macroscopicBindGroup = device.createBindGroup({
-    layout: macroscopicLayout,
+  const bindGroup = device.createBindGroup({
+    layout,
     entries: [
       { binding: 0, resource: { buffer: fBuffer } },
       { binding: 1, resource: { buffer: rhoBuffer } },
@@ -30,5 +30,5 @@ export const createMacroscopicBindGroup = ({
     ],
   });
 
-  return macroscopicBindGroup;
+  return bindGroup;
 };

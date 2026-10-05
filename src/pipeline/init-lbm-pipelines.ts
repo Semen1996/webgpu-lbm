@@ -1,31 +1,22 @@
+import commonShader from "@/shaders/compute/common.wgsl?raw";
 import collideStreamShader from "@/shaders/compute/collide-stream.wgsl?raw";
-import boundaryShader from "@/shaders/compute/boundary.wgsl?raw";
-import macroscopicShader from "@/shaders/compute/macroscopic.wgsl?raw";
+import boundaryMacroscopicShader from "@/shaders/compute/boundary-macroscopic.wgsl?raw";
+
+const createLbmComputePipeline = (device: GPUDevice, shader: string) =>
+  device.createComputePipelineAsync({
+    layout: "auto",
+    compute: {
+      module: device.createShaderModule({ code: `${commonShader}\n${shader}` }),
+      entryPoint: "main",
+    },
+  });
 
 export const initLbmPipelines = async ({ device }: { device: GPUDevice }) => {
-  const collideStreamPipeline = await device.createComputePipelineAsync({
-    layout: "auto",
-    compute: {
-      module: device.createShaderModule({ code: collideStreamShader }),
-      entryPoint: "main",
-    },
-  });
+  const [collideStreamPipeline, boundaryMacroscopicPipeline] =
+    await Promise.all([
+      createLbmComputePipeline(device, collideStreamShader),
+      createLbmComputePipeline(device, boundaryMacroscopicShader),
+    ]);
 
-  const boundaryPipeline = await device.createComputePipelineAsync({
-    layout: "auto",
-    compute: {
-      module: device.createShaderModule({ code: boundaryShader }),
-      entryPoint: "main",
-    },
-  });
-
-  const macroscopicPipeline = await device.createComputePipelineAsync({
-    layout: "auto",
-    compute: {
-      module: device.createShaderModule({ code: macroscopicShader }),
-      entryPoint: "main",
-    },
-  });
-
-  return { collideStreamPipeline, boundaryPipeline, macroscopicPipeline };
+  return { collideStreamPipeline, boundaryMacroscopicPipeline };
 };
