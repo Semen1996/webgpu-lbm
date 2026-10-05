@@ -100,23 +100,12 @@ async function run() {
     const workgroupsX = Math.ceil(NX / 8);
     const workgroupsY = Math.ceil(NY / 8);
 
-    const cellCount = NX * NY;
-    const uStaging = device.createBuffer({
-      size: cellCount * 4,
-      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-    });
-    const vStaging = device.createBuffer({
-      size: cellCount * 4,
-      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-    });
-
     let fSrcIndex = 0; // индекс буфера в fBuffers со свежими f
 
     const MAX_ITERATIONS = 100000; // с запасом под более медленную сходимость
     const STEPS_PER_BATCH = 100;
     const CHUNK_SIZE = 20; // сколько LBM-шагов в одном submit — подберите экспериментально
 
-    let previousErs = 0.0;
     let iteration = 0;
 
     function draw() {
@@ -159,28 +148,6 @@ async function run() {
 
         stepsRemaining -= chunkSteps;
       }
-
-      // readback для проверки сходимости — после ВСЕХ чанков батча, как и раньше
-      const encoder = device.createCommandEncoder();
-      encoder.copyBufferToBuffer(uBuffer, 0, uStaging, 0, cellCount * 4);
-      encoder.copyBufferToBuffer(vBuffer, 0, vStaging, 0, cellCount * 4);
-      device.queue.submit([encoder.finish()]);
-
-      await uStaging.mapAsync(GPUMapMode.READ);
-      await vStaging.mapAsync(GPUMapMode.READ);
-      const uData = new Float32Array(uStaging.getMappedRange().slice(0));
-      const vData = new Float32Array(vStaging.getMappedRange().slice(0));
-      uStaging.unmap();
-      vStaging.unmap();
-
-      let ers = 0;
-      for (let idx = 0; idx < cellCount; idx++) {
-        ers += uData[idx] * uData[idx] + vData[idx] * vData[idx];
-      }
-
-      const error = Math.abs(ers - previousErs) / cellCount;
-      previousErs = ers;
-      return error;
     }
 
     async function loop() {
