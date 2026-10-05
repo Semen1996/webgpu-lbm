@@ -102,7 +102,7 @@ async function run() {
 
     let fSrcIndex = 0; // индекс буфера в fBuffers со свежими f
 
-    const MAX_ITERATIONS = 10000; // с запасом под более медленную сходимость
+    const MAX_ITERATIONS = 50000; // с запасом под более медленную сходимость
     const STEPS_PER_BATCH = 100; // шагов между отрисовками кадра
     const CHUNK_SIZE = 20; // шагов в одном submit; если система тормозит — уменьшить
 

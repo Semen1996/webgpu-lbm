@@ -5,7 +5,7 @@ export const createFBuffer = ({ device, nx, ny }: CreateFBufferProps) => {
 
   const fBuffer = device.createBuffer({
     size,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    usage: GPUBufferUsage.STORAGE, // пишут только шейдеры, с CPU не заполняется
   });
   return fBuffer;
 };

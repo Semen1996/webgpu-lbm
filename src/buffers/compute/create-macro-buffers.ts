@@ -12,9 +12,7 @@ export const createMacroBuffers = ({
   u0,
 }: CreateMacroBuffersProps) => {
   const cellCount = nx * ny;
-  const usage =
-    GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
-  // COPY_SRC нужен для периодического readback при проверке сходимости
+  const usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
 
   const rhoBuffer = device.createBuffer({ size: cellCount * 4, usage });
   const uBuffer = device.createBuffer({ size: cellCount * 4, usage });
