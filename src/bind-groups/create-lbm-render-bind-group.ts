@@ -24,5 +24,5 @@ export const createLbmRenderBindGroup = ({
     ],
   });
 
-  return { renderBindGroup };
+  return renderBindGroup;
 };

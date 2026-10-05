@@ -1,6 +1,6 @@
-type CreateFBuffersProps = { device: GPUDevice; nx: number; ny: number };
+type CreateFBufferProps = { device: GPUDevice; nx: number; ny: number };
 
-export const createFBuffers = ({ device, nx, ny }: CreateFBuffersProps) => {
+export const createFBuffer = ({ device, nx, ny }: CreateFBufferProps) => {
   const size = nx * ny * 9 * 4; // 9 направлений на ячейку, float32
 
   const fBuffer = device.createBuffer({

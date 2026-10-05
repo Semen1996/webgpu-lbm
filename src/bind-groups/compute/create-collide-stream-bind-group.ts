@@ -1,4 +1,4 @@
-type CreateLbmBindGroupsProps = {
+type CreateCollideStreamBindGroupProps = {
   device: GPUDevice;
   collideStreamPipeline: GPUComputePipeline;
   fABuffer: GPUBuffer;
@@ -18,7 +18,7 @@ export const createCollideStreamBindGroup = ({
   uBuffer,
   vBuffer,
   paramsBuffer,
-}: CreateLbmBindGroupsProps) => {
+}: CreateCollideStreamBindGroupProps) => {
   const collideStreamLayout = collideStreamPipeline.getBindGroupLayout(0);
 
   const collideStream = device.createBindGroup({

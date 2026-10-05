@@ -10,7 +10,7 @@ import {
 } from "./utils/initial-conditions";
 
 import { initCanvas } from "./init-canvas";
-import { createFBuffers } from "./buffers/compute/create-f-buffers";
+import { createFBuffer } from "./buffers/compute/create-f-buffer";
 import { createMacroBuffers } from "./buffers/compute/create-macro-buffers";
 import { createLbmParamsBuffer } from "./buffers/compute/create-lbm-params-buffer";
 import { initLbmPipelines } from "./pipeline/init-lbm-pipelines";
@@ -40,8 +40,8 @@ async function run() {
 
     const lbmRenderPipeline = await initLbmRenderPipeline({ device });
 
-    const fABuffer = createFBuffers({ device, nx: NX, ny: NY });
-    const fBBuffer = createFBuffers({ device, nx: NX, ny: NY });
+    const fABuffer = createFBuffer({ device, nx: NX, ny: NY });
+    const fBBuffer = createFBuffer({ device, nx: NX, ny: NY });
 
     const { rhoBuffer, uBuffer, vBuffer } = createMacroBuffers({
       device,
@@ -55,7 +55,7 @@ async function run() {
       params: { nx: NX, ny: NY, omega: OMEGA, u0: U0 },
     });
 
-    const { renderBindGroup } = createLbmRenderBindGroup({
+    const renderBindGroup = createLbmRenderBindGroup({
       device,
       pipeline: lbmRenderPipeline,
       uBuffer,
