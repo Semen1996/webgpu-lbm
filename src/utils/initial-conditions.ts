@@ -1,37 +1,10 @@
-// Реальные размеры графика
-export const VIEWPORT = {
-  xMin: 0,
-  xMax: 50,
-  yMin: 0,
-  yMax: 50,
-};
+export const VIEWPORT = { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
+export const DOMAIN = { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
 
-// Расчётная область — физический размер и положение данных,
-export const DOMAIN = {
-  xMin: 0,
-  xMax: 40,
-  yMin: 0,
-  yMax: 40,
-};
-
-export const t0 = 0; // начальное время, [c]
-export const t = t0; // текущее время, [c]
-export const dt = 0.001; // шаг по времени, [c]
-
-export const OMEGA = -1; // скорость изменения вращения, [м/с]
-
-export const NX = 1000; // количество узлов по x-координате
-export const NY = 1000; // количество узлов по Y-координате
-
-export const initialValue = new Float32Array(NX * NY); // массив значений
-
-// запись данных в массив значений
-for (let iy = 0; iy < NY; iy++) {
-  for (let ix = 0; ix < NX; ix++) {
-    const x = DOMAIN.xMin + ((DOMAIN.xMax - DOMAIN.xMin) * ix) / (NX - 1);
-    const y = DOMAIN.yMin + ((DOMAIN.yMax - DOMAIN.yMin) * iy) / (NY - 1);
-
-    initialValue[iy * NX + ix] =
-      Math.sin(x + OMEGA * t0) * Math.cos(y + OMEGA * t0);
-  }
-}
+export const NX = 301;
+export const NY = 301;
+export const U0 = 0.1;
+export const RE_TARGET = 1000; // Число Рейнольдса
+export const ALPHA = (U0 * (NY - 1)) / RE_TARGET;
+export const OMEGA = 1.0 / (3.0 * ALPHA + 0.5);
+export const RE = (U0 * (NY - 1)) / ALPHA; // Число Рейнольдса

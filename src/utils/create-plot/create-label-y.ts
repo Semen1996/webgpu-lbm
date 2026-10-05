@@ -1,4 +1,4 @@
-import { LABELS_Y_SELECTOR_ID } from "../utils/selectors";
+import { LABELS_Y_SELECTOR_ID } from "../selectors";
 
 const labelsYContainer = document.querySelector(`#${LABELS_Y_SELECTOR_ID}`);
 

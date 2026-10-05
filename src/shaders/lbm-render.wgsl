@@ -1,14 +1,16 @@
 struct Params {
-  gridSize: vec2<u32>,     // nx, ny
-  valueRange: vec2<f32>,   // minValue, maxValue
-  viewportMin: vec2<f32>,  // xMin, yMin
-  viewportMax: vec2<f32>,  // xMax, yMax
-  domainMin: vec2<f32>,    // xMin, yMin
-  domainMax: vec2<f32>,    // xMax, yMax
+  gridSize: vec2<u32>,
+  u0: f32,
+  _pad: f32,
+  viewportMin: vec2<f32>,
+  viewportMax: vec2<f32>,
+  domainMin: vec2<f32>,
+  domainMax: vec2<f32>,
 };
 
-@group(0) @binding(0) var<storage, read> values: array<f32>;
-@group(0) @binding(1) var<uniform> params: Params;
+@group(0) @binding(0) var<storage, read> uVel: array<f32>;
+@group(0) @binding(1) var<storage, read> vVel: array<f32>;
+@group(0) @binding(2) var<uniform> params: Params;
 
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
@@ -17,7 +19,6 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
-  // full-screen triangle трюк: 3 вершины, покрывающие весь экран
   var pos = array<vec2<f32>, 3>(
     vec2<f32>(-1.0, -1.0),
     vec2<f32>(3.0, -1.0),
@@ -48,23 +49,24 @@ fn colormap(t: f32) -> vec3<f32> {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let uv = clamp(in.uv, vec2<f32>(0.0), vec2<f32>(1.0));
 
-  // uv -> физическая координата в системе VIEWPORT
   let worldPos = params.viewportMin + uv * (params.viewportMax - params.viewportMin);
 
-  // если точка вне расчётной области — просто фон, данных там нет
   if (worldPos.x < params.domainMin.x || worldPos.x > params.domainMax.x ||
       worldPos.y < params.domainMin.y || worldPos.y > params.domainMax.y) {
     discard;
   }
 
-  // локальная координата внутри DOMAIN, нормализованная в [0,1]
   let local = (worldPos - params.domainMin) / (params.domainMax - params.domainMin);
 
   let ix = min(u32(local.x * f32(params.gridSize.x)), params.gridSize.x - 1u);
+  // MATLAB-сетка индексируется снизу вверх (j=1 — низ, j=ny — верх/крышка),
+  // а uv.y=0 у нас соответствует НИЗУ экрана — переворот не нужен
   let iy = min(u32(local.y * f32(params.gridSize.y)), params.gridSize.y - 1u);
 
-  let value = values[iy * params.gridSize.x + ix];
-  let t = clamp((value - params.valueRange.x) / (params.valueRange.y - params.valueRange.x), 0.0, 1.0);
+  let idx = iy * params.gridSize.x + ix;
+  let speed = sqrt(uVel[idx] * uVel[idx] + vVel[idx] * vVel[idx]);
+
+  let t = clamp(speed / params.u0, 0.0, 1.0);
 
   return vec4<f32>(colormap(t), 1.0);
 }

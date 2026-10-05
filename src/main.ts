@@ -1,26 +1,27 @@
 import "./style.css";
-import { initRenderPipeline } from "./init-render-pipeline";
 import { initWebGPU } from "./init-webgpu";
 import {
   DOMAIN,
-  initialValue,
   NX,
   NY,
   OMEGA,
-  t0,
+  U0,
   VIEWPORT,
 } from "./utils/initial-conditions";
-import { createRenderBindGroup } from "./create-render-bind-group";
-import { createLabelX } from "./helpers/create-label-x";
-import { createLabelY } from "./helpers/create-label-y";
-import { createValueBuffer } from "./buffers/create-value-buffer";
-import { computeMinMax } from "./utils/compute-min-max";
-import { createRenderParamsBuffer } from "./buffers/create-render-params-buffer";
+
 import { initCanvas } from "./init-canvas";
-import { createComputeParamsBuffer } from "./buffers/create-compute-params-buffer";
-import { initComputePipeline } from "./init-compute-pipeline";
-import { createComputeBindGroups } from "./create-compute-bind-groups";
-import { changeLabelTime } from "./helpers/change-label-time";
+import { createFBuffers } from "./buffers/compute/create-f-buffers";
+import { createMacroBuffers } from "./buffers/compute/create-macro-buffers";
+import { createLbmParamsBuffer } from "./buffers/compute/create-lbm-params-buffer";
+import { initLbmPipelines } from "./pipeline/init-lbm-pipelines";
+import { createLbmRenderParamsBuffer } from "./buffers/create-lbm-render-params-buffer";
+import { initLbmRenderPipeline } from "./pipeline/init-lbm-render-pipeline";
+import { createLbmRenderBindGroup } from "./bind-groups/create-lbm-render-bind-group";
+import createPlot from "./utils/create-plot";
+import { createCollideStreamBindGroup } from "./bind-groups/compute/create-collide-stream-bind-group";
+import { createBoundaryBindGroup } from "./bind-groups/compute/create-boundary-bind-group";
+import { createMacroscopicBindGroup } from "./bind-groups/compute/create-macroscopic-bind-group";
+import { renderFrame } from "./render-frame";
 
 async function run() {
   try {
@@ -33,100 +34,207 @@ async function run() {
       canvasSelector: "#gfx-main",
     });
 
-    const valueBuffer = createValueBuffer({
+    const lbmRenderParamsBuffer = createLbmRenderParamsBuffer({
       device,
-      initialValue,
+      params: { nx: NX, ny: NY, u0: U0, viewport: VIEWPORT, domain: DOMAIN },
     });
 
-    const { min, max } = computeMinMax(initialValue);
+    const lbmRenderPipeline = await initLbmRenderPipeline({ device });
 
-    const renderParamsBuffer = createRenderParamsBuffer({
+    const fABuffer = createFBuffers({ device, nx: NX, ny: NY });
+    const fBBuffer = createFBuffers({ device, nx: NX, ny: NY });
+
+    const { rhoBuffer, uBuffer, vBuffer } = createMacroBuffers({
       device,
-      params: {
-        nx: NX,
-        ny: NY,
-        minValue: min,
-        maxValue: max,
-        viewport: VIEWPORT,
-        domain: DOMAIN,
-      },
+      nx: NX,
+      ny: NY,
+      u0: U0,
     });
 
-    const renderPipeline = await initRenderPipeline({ device });
-    const renderBindGroup = createRenderBindGroup({
+    const lbmParamsBuffer = createLbmParamsBuffer({
       device,
-      pipeline: renderPipeline,
-      valueBuffer,
-      paramsBuffer: renderParamsBuffer,
+      params: { nx: NX, ny: NY, omega: OMEGA, u0: U0 },
     });
 
-    const { computeParamsBuffer, TIME_OFFSET } = createComputeParamsBuffer({
+    const { renderBindGroup } = createLbmRenderBindGroup({
       device,
-      params: { nx: NX, ny: NY, domain: DOMAIN, omega: OMEGA, t0 },
+      pipeline: lbmRenderPipeline,
+      uBuffer,
+      vBuffer,
+      paramsBuffer: lbmRenderParamsBuffer,
     });
 
-    const computePipeline = await initComputePipeline({ device });
+    const { collideStreamPipeline, boundaryPipeline, macroscopicPipeline } =
+      await initLbmPipelines({ device });
 
-    const computeBindGroup = createComputeBindGroups({
+    const collideStreamABindGroup = createCollideStreamBindGroup({
       device,
-      pipeline: computePipeline,
-      valueBuffer,
-      paramsBuffer: computeParamsBuffer,
+      collideStreamPipeline,
+      fABuffer,
+      fBBuffer,
+      rhoBuffer,
+      uBuffer,
+      vBuffer,
+      paramsBuffer: lbmParamsBuffer,
     });
 
-    const startTime = performance.now();
+    const collideStreamBBindGroup = createCollideStreamBindGroup({
+      device,
+      collideStreamPipeline,
+      fABuffer: fBBuffer,
+      fBBuffer: fABuffer,
+      rhoBuffer,
+      uBuffer,
+      vBuffer,
+      paramsBuffer: lbmParamsBuffer,
+    });
+
+    const boundaryABindGroup = createBoundaryBindGroup({
+      device,
+      boundaryPipeline,
+      fBuffer: fABuffer,
+      paramsBuffer: lbmParamsBuffer,
+    });
+
+    const boundaryBBindGroup = createBoundaryBindGroup({
+      device,
+      boundaryPipeline,
+      fBuffer: fBBuffer,
+      paramsBuffer: lbmParamsBuffer,
+    });
+
+    const macroscopicABindGroup = createMacroscopicBindGroup({
+      device,
+      macroscopicPipeline,
+      fBuffer: fABuffer,
+      rhoBuffer,
+      uBuffer,
+      vBuffer,
+      paramsBuffer: lbmParamsBuffer,
+    });
+
+    const macroscopicBBindGroup = createMacroscopicBindGroup({
+      device,
+      macroscopicPipeline,
+      fBuffer: fBBuffer,
+      rhoBuffer,
+      uBuffer,
+      vBuffer,
+      paramsBuffer: lbmParamsBuffer,
+    });
 
     const workgroupsX = Math.ceil(NX / 8);
     const workgroupsY = Math.ceil(NY / 8);
 
-    function frame() {
-      const t = (performance.now() - startTime) / 1000 / 2; // секунды с начала работы
-      device.queue.writeBuffer(
-        computeParamsBuffer,
-        TIME_OFFSET,
-        new Float32Array([t]),
-      );
+    const cellCount = NX * NY;
+    const uStaging = device.createBuffer({
+      size: cellCount * 4,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+    const vStaging = device.createBuffer({
+      size: cellCount * 4,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
 
-      const encoder = device.createCommandEncoder();
+    let currentIsA = true; // true: свежие данные сейчас в fA
 
-      const computePass = encoder.beginComputePass();
-      computePass.setPipeline(computePipeline);
-      computePass.setBindGroup(0, computeBindGroup);
-      computePass.dispatchWorkgroups(workgroupsX, workgroupsY);
-      computePass.end();
+    const MAX_ITERATIONS = 100000; // с запасом под более медленную сходимость
+    const STEPS_PER_BATCH = 100;
+    const CHUNK_SIZE = 20; // сколько LBM-шагов в одном submit — подберите экспериментально
 
-      const renderPass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: context.getCurrentTexture().createView(),
-            clearValue: { r: 255, g: 255, b: 255, a: 1 },
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
+    let previousErs = 0.0;
+    let iteration = 0;
+
+    function draw() {
+      renderFrame({
+        device,
+        context,
+        renderPipeline: lbmRenderPipeline,
+        renderBindGroup,
       });
-      renderPass.setPipeline(renderPipeline);
-      renderPass.setBindGroup(0, renderBindGroup);
-      renderPass.draw(3);
-      renderPass.end();
-
-      device.queue.submit([encoder.finish()]);
-
-      changeLabelTime(t);
-      requestAnimationFrame(frame);
     }
 
-    requestAnimationFrame(frame);
+    async function runBatch() {
+      let stepsRemaining = STEPS_PER_BATCH;
+
+      while (stepsRemaining > 0) {
+        const chunkSteps = Math.min(CHUNK_SIZE, stepsRemaining);
+
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginComputePass();
+
+        for (let step = 0; step < chunkSteps; step++) {
+          pass.setPipeline(collideStreamPipeline);
+          pass.setBindGroup(
+            0,
+            currentIsA ? collideStreamABindGroup : collideStreamBBindGroup,
+          );
+          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
+
+          currentIsA = !currentIsA;
+
+          pass.setPipeline(boundaryPipeline);
+          pass.setBindGroup(
+            0,
+            currentIsA ? boundaryABindGroup : boundaryBBindGroup,
+          );
+          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
+
+          pass.setPipeline(macroscopicPipeline);
+          pass.setBindGroup(
+            0,
+            currentIsA ? macroscopicABindGroup : macroscopicBBindGroup,
+          );
+          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
+
+          iteration++;
+        }
+
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+
+        // ключевая строка: ждём завершения ИМЕННО этого куска перед следующим
+        await device.queue.onSubmittedWorkDone();
+
+        stepsRemaining -= chunkSteps;
+      }
+
+      // readback для проверки сходимости — после ВСЕХ чанков батча, как и раньше
+      const encoder = device.createCommandEncoder();
+      encoder.copyBufferToBuffer(uBuffer, 0, uStaging, 0, cellCount * 4);
+      encoder.copyBufferToBuffer(vBuffer, 0, vStaging, 0, cellCount * 4);
+      device.queue.submit([encoder.finish()]);
+
+      await uStaging.mapAsync(GPUMapMode.READ);
+      await vStaging.mapAsync(GPUMapMode.READ);
+      const uData = new Float32Array(uStaging.getMappedRange().slice(0));
+      const vData = new Float32Array(vStaging.getMappedRange().slice(0));
+      uStaging.unmap();
+      vStaging.unmap();
+
+      let ers = 0;
+      for (let idx = 0; idx < cellCount; idx++) {
+        ers += uData[idx] * uData[idx] + vData[idx] * vData[idx];
+      }
+
+      const error = Math.abs(ers - previousErs) / cellCount;
+      previousErs = ers;
+      return error;
+    }
+
+    async function loop() {
+      await runBatch();
+      draw();
+
+      if (iteration < MAX_ITERATIONS) {
+        requestAnimationFrame(() => loop());
+      }
+    }
+
+    loop();
   } catch (error) {
     console.error(error);
   }
-}
-
-function createPlot() {
-  createLabelX(VIEWPORT.xMin.toString(), "0%");
-  createLabelX(VIEWPORT.xMax.toString(), "100%");
-  createLabelY(VIEWPORT.yMin.toString(), "0%");
-  createLabelY(VIEWPORT.yMax.toString(), "100%");
 }
 
 createPlot();

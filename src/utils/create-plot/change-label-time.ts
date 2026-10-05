@@ -1,4 +1,4 @@
-import { TIME_VALUE_SELECTOR_ID } from "../utils/selectors";
+import { TIME_VALUE_SELECTOR_ID } from "../selectors";
 
 const timeValueSelector = document.querySelector(`#${TIME_VALUE_SELECTOR_ID}`);
 

@@ -1,4 +1,4 @@
-import { LABELS_X_SELECTOR_ID } from "../utils/selectors";
+import { LABELS_X_SELECTOR_ID } from "../selectors";
 
 const labelsXContainer = document.querySelector(`#${LABELS_X_SELECTOR_ID}`);
 

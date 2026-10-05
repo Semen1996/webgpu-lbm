@@ -1,23 +1,22 @@
 type Bounds = { xMin: number; xMax: number; yMin: number; yMax: number };
 
-type CreateRenderParamsBufferProps = {
+type CreateLbmRenderParamsBufferProps = {
   device: GPUDevice;
   params: {
     nx: number;
     ny: number;
-    minValue: number;
-    maxValue: number;
+    u0: number;
     viewport: Bounds;
     domain: Bounds;
   };
 };
 
-export const createRenderParamsBuffer = ({
+export const createLbmRenderParamsBuffer = ({
   device,
   params,
-}: CreateRenderParamsBufferProps) => {
+}: CreateLbmRenderParamsBufferProps) => {
   const buffer = device.createBuffer({
-    size: 48, // 2x u32 + 10x f32
+    size: 48,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -26,8 +25,8 @@ export const createRenderParamsBuffer = ({
 
   view.setUint32(0, params.nx, true);
   view.setUint32(4, params.ny, true);
-  view.setFloat32(8, params.minValue, true);
-  view.setFloat32(12, params.maxValue, true);
+  view.setFloat32(8, params.u0, true);
+  view.setFloat32(12, 0, true); // паддинг до 16 байт (выравнивание vec2)
 
   view.setFloat32(16, params.viewport.xMin, true);
   view.setFloat32(20, params.viewport.yMin, true);
