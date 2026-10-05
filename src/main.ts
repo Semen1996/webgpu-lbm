@@ -102,9 +102,9 @@ async function run() {
 
     let fSrcIndex = 0; // индекс буфера в fBuffers со свежими f
 
-    const MAX_ITERATIONS = 100000; // с запасом под более медленную сходимость
-    const STEPS_PER_BATCH = 100;
-    const CHUNK_SIZE = 20; // сколько LBM-шагов в одном submit — подберите экспериментально
+    const MAX_ITERATIONS = 10000; // с запасом под более медленную сходимость
+    const STEPS_PER_BATCH = 100; // шагов между отрисовками кадра
+    const CHUNK_SIZE = 20; // шагов в одном submit; если система тормозит — уменьшить
 
     let iteration = 0;
 
@@ -142,8 +142,7 @@ async function run() {
 
         pass.end();
         device.queue.submit([encoder.finish()]);
-
-        // ключевая строка: ждём завершения ИМЕННО этого куска перед следующим
+        // ждём каждый чанк: в паузе GPU успевает обслужить композитор и другие приложения
         await device.queue.onSubmittedWorkDone();
 
         stepsRemaining -= chunkSteps;
