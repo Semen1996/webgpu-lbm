@@ -13,7 +13,10 @@ import { initCanvas } from "./init-canvas";
 import { createFBuffer } from "./buffers/compute/create-f-buffer";
 import { createMacroBuffers } from "./buffers/compute/create-macro-buffers";
 import { createLbmParamsBuffer } from "./buffers/compute/create-lbm-params-buffer";
-import { initLbmPipelines } from "./pipeline/init-lbm-pipelines";
+import {
+  initLbmPipelines,
+  WORKGROUP_SIZE,
+} from "./pipeline/init-lbm-pipelines";
 import { createLbmRenderParamsBuffer } from "./buffers/create-lbm-render-params-buffer";
 import { initLbmRenderPipeline } from "./pipeline/init-lbm-render-pipeline";
 import { createLbmRenderBindGroup } from "./bind-groups/create-lbm-render-bind-group";
@@ -98,8 +101,8 @@ async function run() {
       }),
     );
 
-    const workgroupsX = Math.ceil(NX / 8);
-    const workgroupsY = Math.ceil(NY / 8);
+    const workgroupsX = Math.ceil(NX / WORKGROUP_SIZE);
+    const workgroupsY = Math.ceil(NY / WORKGROUP_SIZE);
 
     let fSrcIndex = 0; // индекс буфера в fBuffers со свежими f
 

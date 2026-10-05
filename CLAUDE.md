@@ -25,7 +25,7 @@ The entry point is `src/main.ts`. It sets up all GPU resources and runs the simu
 - The D2Q9 direction order is E, N, W, S, NE, NW, SW, SE, C. The direction constants, `cx`/`cy`/`w`, the `Params` struct and `fIndex` live in `src/shaders/compute/common.wgsl`. `init-lbm-pipelines.ts` prepends that file to every compute shader, so don't redeclare these names in individual shaders.
 - Macroscopic fields `rho`, `u` and `v` are separate `nx*ny` `f32` buffers. They are initialized in `create-macro-buffers.ts`, with `u = U0` on the top row. The `f` buffers start at zero, because the first collide step computes `feq` from `rho`/`u`/`v`.
 
-**One LBM step** is two compute dispatches in `src/shaders/compute/`, both `@workgroup_size(8, 8)`:
+**One LBM step** is two compute dispatches in `src/shaders/compute/`, both `@workgroup_size(WORKGROUP_SIZE, WORKGROUP_SIZE)`. `WORKGROUP_SIZE` is an `override` declared in `common.wgsl`, and its value comes from the TS constant in `init-lbm-pipelines.ts` via `constants`. `main.ts` uses the same TS constant to compute the dispatch size, so change it only in TS:
 1. `collide-stream.wgsl` pulls from `fOld` and writes `fNew`. For each direction it computes `feq` from the *source* cell's `rho`/`u`/`v` and collides in the same pass. The pull uses periodic wrap; the next pass overrides the edges.
 2. `boundary-macroscopic.wgsl` reads each cell's 9 values of the freshly written `f` once. It applies bounce-back on the left, right and bottom walls, and a Zou/He-style moving lid on the top row (interior nodes only). It writes `f` back for boundary cells only, then recomputes `rho`, `u` and `v` from the same local values. The order of overwrites deliberately mirrors the MATLAB code, and the top row uses a special density formula.
 

@@ -1,6 +1,10 @@
 // Общий код для всех LBM compute-шейдеров — подставляется в начало каждого
 // модуля в init-lbm-pipelines.ts
 
+// сторона квадратной workgroup; значение передаётся из TS (WORKGROUP_SIZE
+// в init-lbm-pipelines.ts) через constants при создании pipeline
+override WORKGROUP_SIZE: u32 = 8;
+
 struct Params {
   gridSize: vec2<u32>, // nx, ny
   omega: f32,

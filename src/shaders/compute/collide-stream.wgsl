@@ -13,7 +13,7 @@ fn wrapi(a: i32, n: i32) -> i32 {
   return r;
 }
 
-@compute @workgroup_size(8, 8)
+@compute @workgroup_size(WORKGROUP_SIZE, WORKGROUP_SIZE)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let nx = params.gridSize.x;
   let ny = params.gridSize.y;
