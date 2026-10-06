@@ -16,16 +16,24 @@ There are no tests and no linter. `tsc` with `noUnusedLocals` and `noUnusedParam
 
 ## Architecture
 
-The entry point is `src/main.ts`. It sets up all GPU resources and runs the simulation loop. The other modules are small factory functions, one per file, with the naming pattern `create-*-buffer.ts`, `create-*-bind-group.ts` and `init-*-pipeline.ts`. Each takes a single props object.
+The entry point is `src/main.ts`. It sets up all GPU resources and runs the simulation loop. The other modules are small factory functions, one per file, with the naming pattern `create-*-buffer.ts`, `create-*-bind-group.ts` and `init-*-pipeline.ts`. Each takes a single props object. Keep this one-factory-per-file style; don't merge factories into larger solver or renderer modules.
 
-**Configuration** lives in `src/config.ts`. `SIM: SimulationConfig` holds the grid size `nx`/`ny`, lid velocity `u0` and target Reynolds number `Re`; `computeOmega(SIM)` derives the BGK relaxation parameter. `VIEW: ViewConfig` holds `viewport`/`domain`, which map the grid onto the plot area. Modules take these as parameters rather than importing them.
+Files are grouped by feature, and each feature folder has `buffers/`, `bind-groups/` (`bind-group/` in `render/`), `pipeline(s)/` and `shaders/` subfolders:
+- `src/lbm/`: the simulation (the `f` buffers, the compute params buffer, both compute pipelines and their bind groups).
+- `src/render/`: the heatmap (render params, pipeline, bind group, `render-frame.ts`).
+- `src/common/`: things shared by both: `buffers/create-macro-buffer.ts` and `shaders/common.wgsl`.
+- `src/init-gpu/`: `initWebGPU` and `initCanvas`.
+- `src/ui/create-plot/`: DOM axis labels and the time label.
+- `src/utils/selectors.ts`: DOM ids and selectors.
+
+**Configuration** lives in `src/config.ts`. `SIMULATION: SimulationConfig` holds the grid size `nx`/`ny`, lid velocity `u0` and target Reynolds number `Re`; `computeOmega(SIMULATION)` derives the BGK relaxation parameter. `VIEW: ViewConfig` holds `viewport`/`domain`, which map the grid onto the plot area. `main.ts` imports them and passes values down to the factories.
 
 **Data layout**
 - Distribution functions `f` are stored as a flat `f32` array indexed `(j * nx + i) * 9 + k`. Here `j=0` is the bottom row and `j=ny-1` is the moving lid at the top.
-- The D2Q9 direction order is E, N, W, S, NE, NW, SW, SE, C. The direction constants, `cx`/`cy`/`w`, the `Params` struct and `fIndex` live in `src/shaders/compute/common.wgsl`. `init-lbm-pipelines.ts` prepends that file to every compute shader, so don't redeclare these names in individual shaders.
-- Macroscopic fields are packed into one buffer, `array<vec4<f32>>` with one element per cell: `x = rho`, `y = u`, `z = v`, and `w` unused. All three shaders bind it as `macroFields`; `macro` is a reserved word in WGSL. It is initialized in `create-macro-buffer.ts`, with `u = U0` on the top row. The `f` buffers start at zero, because the first collide step computes `feq` from `rho`/`u`/`v`.
+- The D2Q9 direction order is E, N, W, S, NE, NW, SW, SE, C. The direction constants, `cx`/`cy`/`w`, the `Params` struct and `fIndex` live in `src/common/shaders/common.wgsl`. `lbm/pipeline/init-lbm-pipelines.ts` prepends that file to every compute shader, so don't redeclare these names in individual shaders.
+- Macroscopic fields are packed into one buffer, `array<vec4<f32>>` with one element per cell: `x = rho`, `y = u`, `z = v`, and `w` unused. All three shaders bind it as `macroFields`; `macro` is a reserved word in WGSL. It is initialized in `common/buffers/create-macro-buffer.ts`, with `u = u0` on the top row. The `f` buffers start at zero, because the first collide step computes `feq` from `rho`/`u`/`v`.
 
-**One LBM step** is two compute dispatches in `src/shaders/compute/`, both `@workgroup_size(WORKGROUP_SIZE, WORKGROUP_SIZE)`. `WORKGROUP_SIZE` is an `override` declared in `common.wgsl`, and its value comes from the TS constant in `init-lbm-pipelines.ts` via `constants`. `main.ts` uses the same TS constant to compute the dispatch size, so change it only in TS:
+**One LBM step** is two compute dispatches in `src/lbm/shaders/`, both `@workgroup_size(WORKGROUP_SIZE, WORKGROUP_SIZE)`. `WORKGROUP_SIZE` is an `override` declared in `common.wgsl`, and its value comes from the TS constant in `init-lbm-pipelines.ts` via `constants`. `main.ts` uses the same TS constant to compute the dispatch size, so change it only in TS:
 1. `collide-stream.wgsl` pulls from `fOld` and writes `fNew`. For each direction it computes `feq` from the *source* cell's `rho`/`u`/`v` and collides in the same pass. The pull uses periodic wrap; the next pass overrides the edges.
 2. `boundary-macroscopic.wgsl` reads each cell's 9 values of the freshly written `f` once. It applies bounce-back on the left, right and bottom walls, and a Zou/He-style moving lid on the top row (interior nodes only). It writes `f` back for boundary cells only, then recomputes `rho`, `u` and `v` from the same local values. The order of overwrites deliberately mirrors the MATLAB code, and the top row uses a special density formula.
 
@@ -33,11 +41,11 @@ The entry point is `src/main.ts`. It sets up all GPU resources and runs the simu
 
 **Loop:** each `requestAnimationFrame` runs `runBatch()`, which executes `STEPS_PER_BATCH` steps and then draws one frame. The steps are submitted in chunks of `CHUNK_SIZE`, and the loop awaits `onSubmittedWorkDone()` after *every* chunk. Those gaps are what let the OS compositor and other apps use the GPU. A single await per batch (all chunks queued back to back) was tried and froze the whole system once `STEPS_PER_BATCH` was large, so keep the per-chunk await. `CHUNK_SIZE` sets how long the GPU is held at a time, and `STEPS_PER_BATCH` only sets how often a frame is drawn.
 
-**Rendering:** `lbm-render.wgsl` draws a fullscreen triangle with `draw(3)`. It maps fragment UV to world space through `VIEWPORT`, discards fragments outside `DOMAIN`, samples `u`/`v` at the nearest grid cell, and colors `|u|/U0` with a 4-stop colormap. The axis labels and time label are plain DOM elements (`src/utils/create-plot/`) positioned around the `#gfx-main` canvas in `index.html`.
+**Rendering:** `render/shaders/lbm-render.wgsl` draws a fullscreen triangle with `draw(3)`. It maps fragment UV to world space through `viewport`, discards fragments outside `domain`, samples `u`/`v` at the nearest grid cell, and colors `|u|/u0` with a 4-stop colormap. The axis labels and time label are plain DOM elements (`src/ui/create-plot/`) positioned around the `#gfx-main` canvas in `index.html`.
 
 ## Conventions and gotchas
 
-- WGSL is imported as a string with `import shader from "@/shaders/....wgsl?raw"`. The `@` alias points to `src/` and is configured in both `vite.config.ts` and `tsconfig.json`.
+- WGSL is imported as a string with `?raw`, e.g. `import shader from "../shaders/collide-stream.wgsl?raw"` (or `"@/common/shaders/common.wgsl?raw"` for the shared file). The `@` alias points to `src/` and is configured in both `vite.config.ts` and `tsconfig.json`.
 - Uniform buffers are packed by hand with `DataView` using explicit byte offsets. If a WGSL `Params` struct changes, update the matching `create-*-params-buffer.ts` too, and respect WGSL alignment. `lbm-render` puts its `vec2` fields first and the scalars last, so no explicit `_pad` field is needed; keep that order when adding fields. The compute shaders share the 16-byte `Params` struct from `common.wgsl`.
 - Pipelines use `layout: "auto"`, so bind group entries must match the `@binding` indices that the shader actually uses.
 - `main.ts` passes `requiredSize: NX * NY * 4` to `initWebGPU`. That is a quarter of the macro buffer, but the largest binding is an `f` buffer at `NX*NY*9*4` bytes. It works at the current grid size only because the default limit is large enough. When scaling up the grid, pass the `f` buffer size instead.
