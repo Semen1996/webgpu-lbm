@@ -1,4 +1,4 @@
-import lbmRenderShader from "@/shaders/lbm-render.wgsl?raw";
+import lbmRenderShader from "../shaders/lbm-render.wgsl?raw";
 
 type InitLbmRenderPipelineProps = {
   device: GPUDevice;

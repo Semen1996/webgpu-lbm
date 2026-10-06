@@ -1,6 +1,6 @@
-import commonShader from "@/shaders/compute/common.wgsl?raw";
-import collideStreamShader from "@/shaders/compute/collide-stream.wgsl?raw";
-import boundaryMacroscopicShader from "@/shaders/compute/boundary-macroscopic.wgsl?raw";
+import commonShader from "@/common/shaders/common.wgsl?raw";
+import collideStreamShader from "../shaders/collide-stream.wgsl?raw";
+import boundaryMacroscopicShader from "../shaders/boundary-macroscopic.wgsl?raw";
 
 // сторона workgroup для compute-шейдеров (override WORKGROUP_SIZE в common.wgsl)
 export const WORKGROUP_SIZE = 8;

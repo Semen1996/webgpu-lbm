@@ -1,4 +1,4 @@
-import { LABELS_X_SELECTOR_ID, LABELS_Y_SELECTOR_ID } from "../selectors";
+import { LABELS_X_SELECTOR_ID, LABELS_Y_SELECTOR_ID } from "@/utils/selectors";
 
 type Axis = "x" | "y";
 

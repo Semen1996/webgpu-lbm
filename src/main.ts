@@ -1,26 +1,27 @@
 import "./style.css";
-import { initWebGPU } from "./init-webgpu";
-import { computeOmega, SIM, VIEW } from "./config";
+import { initWebGPU } from "./init-gpu/init-webgpu";
+import { computeOmega, SIMULATION, VIEW } from "./config";
 
-import { initCanvas } from "./init-canvas";
-import { createFBuffer } from "./buffers/compute/create-f-buffer";
-import { createMacroBuffer } from "./buffers/compute/create-macro-buffer";
-import { createLbmParamsBuffer } from "./buffers/compute/create-lbm-params-buffer";
+import { initCanvas } from "./init-gpu/init-canvas";
+import { createFBuffer } from "./lbm/buffers/create-f-buffer";
+import { createMacroBuffer } from "./common/buffers/create-macro-buffer";
+import { createLbmParamsBuffer } from "./lbm/buffers/create-lbm-params-buffer";
 import {
   initLbmPipelines,
   WORKGROUP_SIZE,
-} from "./pipeline/init-lbm-pipelines";
-import { createLbmRenderParamsBuffer } from "./buffers/create-lbm-render-params-buffer";
-import { initLbmRenderPipeline } from "./pipeline/init-lbm-render-pipeline";
-import { createLbmRenderBindGroup } from "./bind-groups/create-lbm-render-bind-group";
-import createPlot from "./utils/create-plot";
-import { createCollideStreamBindGroup } from "./bind-groups/compute/create-collide-stream-bind-group";
-import { createBoundaryMacroscopicBindGroup } from "./bind-groups/compute/create-boundary-macroscopic-bind-group";
-import { renderFrame } from "./render-frame";
-import { CANVAS_SELECTOR_ID } from "./utils/selectors";
+} from "./lbm/pipeline/init-lbm-pipelines";
+import { createLbmRenderParamsBuffer } from "./render/buffers/create-lbm-render-params-buffer";
+import { initLbmRenderPipeline } from "./render/pipelines/init-lbm-render-pipeline";
+import { createLbmRenderBindGroup } from "./render/bind-group/create-lbm-render-bind-group";
 
-const { nx: NX, ny: NY, u0: U0 } = SIM;
-const OMEGA = computeOmega(SIM);
+import { createCollideStreamBindGroup } from "./lbm/bind-groups/create-collide-stream-bind-group";
+import { createBoundaryMacroscopicBindGroup } from "./lbm/bind-groups/create-boundary-macroscopic-bind-group";
+import { renderFrame } from "./render/render-frame";
+import { CANVAS_SELECTOR_ID } from "./utils/selectors";
+import createPlot from "./ui/create-plot";
+
+const { nx: NX, ny: NY, u0: U0 } = SIMULATION;
+const OMEGA = computeOmega(SIMULATION);
 
 async function run() {
   try {

@@ -14,7 +14,7 @@ export type ViewConfig = {
   domain: Bounds;
 };
 
-export const SIM: SimulationConfig = {
+export const SIMULATION: SimulationConfig = {
   nx: 301,
   ny: 301,
   u0: 0.1,
