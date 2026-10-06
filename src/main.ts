@@ -19,6 +19,7 @@ import { createBoundaryMacroscopicBindGroup } from "./lbm/bind-groups/create-bou
 import { renderFrame } from "./render/render-frame";
 import { CANVAS_SELECTOR_ID } from "./utils/selectors";
 import createPlot from "./ui/create-plot";
+import { changeLabelTime } from "./ui/create-plot/change-label-time";
 
 const { nx: NX, ny: NY, u0: U0 } = SIMULATION;
 const OMEGA = computeOmega(SIMULATION);
@@ -105,6 +106,7 @@ async function run() {
     let iteration = 0;
 
     function draw() {
+      changeLabelTime(iteration);
       renderFrame({
         device,
         context,
