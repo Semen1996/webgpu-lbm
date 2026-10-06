@@ -11,7 +11,7 @@ struct Params {
   u0: f32,
 };
 
-// D2Q9: E, N, W, S, NE, NW, SW, SE, C (те же cx/cy/w, что и в MATLAB, k=1..9 → 0..8)
+// D2Q9: E, N, W, S, NE, NW, SW, SE, C
 const E = 0u;
 const N = 1u;
 const W = 2u;

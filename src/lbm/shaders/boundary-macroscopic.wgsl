@@ -8,7 +8,7 @@
 @group(0) @binding(1) var<storage, read_write> macroFields: array<vec4<f32>>;
 @group(0) @binding(2) var<uniform> params: Params;
 
-// плотность на крышке (как в ruv() для i,ny в MATLAB)
+// плотность на крышке
 fn lidDensity(local: array<f32, 9>) -> f32 {
   return local[C] + local[E] + local[W] + 2.0 * (local[N] + local[NW] + local[NE]);
 }
@@ -25,7 +25,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let j = gid.y;
 
   // локальная копия всех 9 значений этой ячейки — работаем с ней,
-  // чтобы точно повторить порядок перезаписи из MATLAB
+  // порядок перезаписи ниже важен
   var local: array<f32, 9>;
   for (var k = 0u; k < 9u; k = k + 1u) {
     local[k] = f[fIndex(i, j, k, nx)];
@@ -54,7 +54,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     local[NW] = local[SE];
   }
 
-  // верхняя граница — движущаяся крышка, только внутренние узлы (i=2:nx-1 в MATLAB)
+  // верхняя граница — движущаяся крышка, только внутренние узлы (i=1..nx-2)
   if (j == ny - 1u && i >= 1u && i <= nx - 2u) {
     let rhon = lidDensity(local);
     local[S] = local[N];

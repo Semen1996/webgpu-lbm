@@ -60,7 +60,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let local = (worldPos - params.domainMin) / (params.domainMax - params.domainMin);
 
   let ix = min(u32(local.x * f32(params.gridSize.x)), params.gridSize.x - 1u);
-  // MATLAB-сетка индексируется снизу вверх (j=1 — низ, j=ny — верх/крышка),
+  // сетка индексируется снизу вверх (j=0 — низ, j=ny-1 — верх/крышка),
   // а uv.y=0 у нас соответствует НИЗУ экрана — переворот не нужен
   let iy = min(u32(local.y * f32(params.gridSize.y)), params.gridSize.y - 1u);
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A WebGPU Lattice Boltzmann (D2Q9, BGK) simulation of the 2D lid-driven cavity flow, rendered as a velocity-magnitude heatmap in the browser. It's a port of a MATLAB reference implementation, and the shader comments often refer back to it (MATLAB indices `k=1..9` map to `0..8` here). Comments are mostly in Russian.
+A WebGPU Lattice Boltzmann (D2Q9, BGK) simulation of the 2D lid-driven cavity flow, rendered as a velocity-magnitude heatmap in the browser. Comments are mostly in Russian.
 
 ## Commands
 
@@ -35,7 +35,7 @@ Files are grouped by feature, and each feature folder has `buffers/`, `bind-grou
 
 **One LBM step** is two compute dispatches in `src/lbm/shaders/`, both `@workgroup_size(WORKGROUP_SIZE, WORKGROUP_SIZE)`. `WORKGROUP_SIZE` is an `override` declared in `common.wgsl`, and its value comes from the TS constant in `init-lbm-pipelines.ts` via `constants`. `main.ts` uses the same TS constant to compute the dispatch size, so change it only in TS:
 1. `collide-stream.wgsl` pulls from `fOld` and writes `fNew`. For each direction it computes `feq` from the *source* cell's `rho`/`u`/`v` and collides in the same pass. The pull uses periodic wrap; the next pass overrides the edges.
-2. `boundary-macroscopic.wgsl` reads each cell's 9 values of the freshly written `f` once. It applies bounce-back on the left, right and bottom walls, and a Zou/He-style moving lid on the top row (interior nodes only). It writes `f` back for boundary cells only, then recomputes `rho`, `u` and `v` from the same local values. The order of overwrites deliberately mirrors the MATLAB code, and the top row uses a special density formula.
+2. `boundary-macroscopic.wgsl` reads each cell's 9 values of the freshly written `f` once. It applies bounce-back on the left, right and bottom walls, and a Zou/He-style moving lid on the top row (interior nodes only). It writes `f` back for boundary cells only, then recomputes `rho`, `u` and `v` from the same local values. The order of overwrites matters, and the top row uses a special density formula.
 
 **Ping-pong buffers:** `main.ts` keeps the two `f` buffers in `fBuffers` and builds a matching array of bind groups for each pipeline. `collideStreamBindGroups[i]` reads `fBuffers[i]` (`fSrc`) and writes the other buffer (`fDst`); `boundaryMacroscopicBindGroups[i]` works in place on `fBuffers[i]`. `fSrcIndex` is the index of the buffer holding fresh data. It flips right after collide-stream, so boundary-macroscopic binds to the buffer that was just written.
 
