@@ -18,7 +18,7 @@ There are no tests and no linter. `tsc` with `noUnusedLocals` and `noUnusedParam
 
 The entry point is `src/main.ts`. It sets up all GPU resources and runs the simulation loop. The other modules are small factory functions, one per file, with the naming pattern `create-*-buffer.ts`, `create-*-bind-group.ts` and `init-*-pipeline.ts`. Each takes a single props object.
 
-**Simulation parameters** live in `src/utils/initial-conditions.ts`: grid size `NX`/`NY`, lid velocity `U0`, and target Reynolds number. `OMEGA` is derived from these values. `VIEWPORT`/`DOMAIN` map the grid onto the plot area.
+**Configuration** lives in `src/config.ts`. `SIM: SimulationConfig` holds the grid size `nx`/`ny`, lid velocity `u0` and target Reynolds number `Re`; `computeOmega(SIM)` derives the BGK relaxation parameter. `VIEW: ViewConfig` holds `viewport`/`domain`, which map the grid onto the plot area. Modules take these as parameters rather than importing them.
 
 **Data layout**
 - Distribution functions `f` are stored as a flat `f32` array indexed `(j * nx + i) * 9 + k`. Here `j=0` is the bottom row and `j=ny-1` is the moving lid at the top.

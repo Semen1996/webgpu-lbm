@@ -1,13 +1,6 @@
 import "./style.css";
 import { initWebGPU } from "./init-webgpu";
-import {
-  DOMAIN,
-  NX,
-  NY,
-  OMEGA,
-  U0,
-  VIEWPORT,
-} from "./utils/initial-conditions";
+import { computeOmega, SIM, VIEW } from "./config";
 
 import { initCanvas } from "./init-canvas";
 import { createFBuffer } from "./buffers/compute/create-f-buffer";
@@ -26,6 +19,9 @@ import { createBoundaryMacroscopicBindGroup } from "./bind-groups/compute/create
 import { renderFrame } from "./render-frame";
 import { CANVAS_SELECTOR_ID } from "./utils/selectors";
 
+const { nx: NX, ny: NY, u0: U0 } = SIM;
+const OMEGA = computeOmega(SIM);
+
 async function run() {
   try {
     const { device } = await initWebGPU({
@@ -40,7 +36,7 @@ async function run() {
 
     const lbmRenderParamsBuffer = createLbmRenderParamsBuffer({
       device,
-      params: { nx: NX, ny: NY, u0: U0, viewport: VIEWPORT, domain: DOMAIN },
+      params: { nx: NX, ny: NY, u0: U0, ...VIEW },
     });
 
     const lbmRenderPipeline = await initLbmRenderPipeline({ device, format });
@@ -163,5 +159,5 @@ async function run() {
   }
 }
 
-createPlot();
+createPlot(VIEW);
 run();

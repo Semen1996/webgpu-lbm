@@ -1,14 +1,8 @@
-type Bounds = { xMin: number; xMax: number; yMin: number; yMax: number };
+import type { SimulationConfig, ViewConfig } from "@/config";
 
 type CreateLbmRenderParamsBufferProps = {
   device: GPUDevice;
-  params: {
-    nx: number;
-    ny: number;
-    u0: number;
-    viewport: Bounds;
-    domain: Bounds;
-  };
+  params: Pick<SimulationConfig, "nx" | "ny" | "u0"> & ViewConfig;
 };
 
 export const createLbmRenderParamsBuffer = ({
