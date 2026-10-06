@@ -2,10 +2,9 @@
 
 @group(0) @binding(0) var<storage, read> fOld: array<f32>;
 @group(0) @binding(1) var<storage, read_write> fNew: array<f32>;
-@group(0) @binding(2) var<storage, read> rho: array<f32>;
-@group(0) @binding(3) var<storage, read> uVel: array<f32>;
-@group(0) @binding(4) var<storage, read> vVel: array<f32>;
-@group(0) @binding(5) var<uniform> params: Params;
+// x = rho, y = u, z = v, w не используется
+@group(0) @binding(2) var<storage, read> macroFields: array<vec4<f32>>;
+@group(0) @binding(3) var<uniform> params: Params;
 
 fn wrapi(a: i32, n: i32) -> i32 {
   var r = a % n;
@@ -29,9 +28,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     let sj = wrapi(j - cy[k], i32(ny));
     let sIdx = u32(sj) * nx + u32(si);
 
-    let rhoSrc = rho[sIdx];
-    let uSrc = uVel[sIdx];
-    let vSrc = vVel[sIdx];
+    let m = macroFields[sIdx];
+    let rhoSrc = m.x;
+    let uSrc = m.y;
+    let vSrc = m.z;
 
     let t1 = uSrc * uSrc + vSrc * vSrc;
     let t2 = uSrc * f32(cx[k]) + vSrc * f32(cy[k]);

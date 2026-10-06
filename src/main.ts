@@ -11,7 +11,7 @@ import {
 
 import { initCanvas } from "./init-canvas";
 import { createFBuffer } from "./buffers/compute/create-f-buffer";
-import { createMacroBuffers } from "./buffers/compute/create-macro-buffers";
+import { createMacroBuffer } from "./buffers/compute/create-macro-buffer";
 import { createLbmParamsBuffer } from "./buffers/compute/create-lbm-params-buffer";
 import {
   initLbmPipelines,
@@ -51,7 +51,7 @@ async function run() {
       createFBuffer({ device, nx: NX, ny: NY }),
     ];
 
-    const { rhoBuffer, uBuffer, vBuffer } = createMacroBuffers({
+    const macroBuffer = createMacroBuffer({
       device,
       nx: NX,
       ny: NY,
@@ -66,8 +66,7 @@ async function run() {
     const renderBindGroup = createLbmRenderBindGroup({
       device,
       pipeline: lbmRenderPipeline,
-      uBuffer,
-      vBuffer,
+      macroBuffer,
       paramsBuffer: lbmRenderParamsBuffer,
     });
 
@@ -81,9 +80,7 @@ async function run() {
         collideStreamPipeline,
         fSrcBuffer,
         fDstBuffer: fBuffers[1 - i],
-        rhoBuffer,
-        uBuffer,
-        vBuffer,
+        macroBuffer,
         paramsBuffer: lbmParamsBuffer,
       }),
     );
@@ -94,9 +91,7 @@ async function run() {
         device,
         boundaryMacroscopicPipeline,
         fBuffer,
-        rhoBuffer,
-        uBuffer,
-        vBuffer,
+        macroBuffer,
         paramsBuffer: lbmParamsBuffer,
       }),
     );

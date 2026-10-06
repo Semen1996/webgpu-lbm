@@ -3,9 +3,7 @@ type CreateCollideStreamBindGroupProps = {
   collideStreamPipeline: GPUComputePipeline;
   fSrcBuffer: GPUBuffer;
   fDstBuffer: GPUBuffer;
-  rhoBuffer: GPUBuffer;
-  uBuffer: GPUBuffer;
-  vBuffer: GPUBuffer;
+  macroBuffer: GPUBuffer;
   paramsBuffer: GPUBuffer;
 };
 
@@ -14,9 +12,7 @@ export const createCollideStreamBindGroup = ({
   collideStreamPipeline,
   fSrcBuffer,
   fDstBuffer,
-  rhoBuffer,
-  uBuffer,
-  vBuffer,
+  macroBuffer,
   paramsBuffer,
 }: CreateCollideStreamBindGroupProps) => {
   const collideStreamLayout = collideStreamPipeline.getBindGroupLayout(0);
@@ -26,10 +22,8 @@ export const createCollideStreamBindGroup = ({
     entries: [
       { binding: 0, resource: { buffer: fSrcBuffer } },
       { binding: 1, resource: { buffer: fDstBuffer } },
-      { binding: 2, resource: { buffer: rhoBuffer } },
-      { binding: 3, resource: { buffer: uBuffer } },
-      { binding: 4, resource: { buffer: vBuffer } },
-      { binding: 5, resource: { buffer: paramsBuffer } },
+      { binding: 2, resource: { buffer: macroBuffer } },
+      { binding: 3, resource: { buffer: paramsBuffer } },
     ],
   });
 

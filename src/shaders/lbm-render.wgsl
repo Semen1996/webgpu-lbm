@@ -9,9 +9,9 @@ struct Params {
   u0: f32,
 };
 
-@group(0) @binding(0) var<storage, read> uVel: array<f32>;
-@group(0) @binding(1) var<storage, read> vVel: array<f32>;
-@group(0) @binding(2) var<uniform> params: Params;
+// x = rho, y = u, z = v, w не используется (тот же буфер, что у compute-шейдеров)
+@group(0) @binding(0) var<storage, read> macroFields: array<vec4<f32>>;
+@group(0) @binding(1) var<uniform> params: Params;
 
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
@@ -65,7 +65,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let iy = min(u32(local.y * f32(params.gridSize.y)), params.gridSize.y - 1u);
 
   let idx = iy * params.gridSize.x + ix;
-  let speed = sqrt(uVel[idx] * uVel[idx] + vVel[idx] * vVel[idx]);
+  let speed = length(macroFields[idx].yz);
 
   let t = clamp(speed / params.u0, 0.0, 1.0);
 

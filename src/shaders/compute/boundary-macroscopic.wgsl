@@ -4,10 +4,9 @@
 // Оба шага локальны по ячейке, поэтому делаются за одно чтение f.
 
 @group(0) @binding(0) var<storage, read_write> f: array<f32>;
-@group(0) @binding(1) var<storage, read_write> rho: array<f32>;
-@group(0) @binding(2) var<storage, read_write> uVel: array<f32>;
-@group(0) @binding(3) var<storage, read_write> vVel: array<f32>;
-@group(0) @binding(4) var<uniform> params: Params;
+// x = rho, y = u, z = v, w не используется
+@group(0) @binding(1) var<storage, read_write> macroFields: array<vec4<f32>>;
+@group(0) @binding(2) var<uniform> params: Params;
 
 // плотность на крышке (как в ruv() для i,ny в MATLAB)
 fn lidDensity(local: array<f32, 9>) -> f32 {
@@ -91,8 +90,6 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     vSum = vSum + local[k] * f32(cy[k]);
   }
 
-  let idx = j * nx + i;
-  rho[idx] = rhoValue;
-  uVel[idx] = uSum / rhoValue;
-  vVel[idx] = vSum / rhoValue;
+  macroFields[j * nx + i] =
+    vec4<f32>(rhoValue, uSum / rhoValue, vSum / rhoValue, 0.0);
 }
